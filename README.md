@@ -1,6 +1,6 @@
 # comprog
 
-My computer programming (C) study notes and practice code.
+Computer programming (C) study notes and practice code.
 
 ## Folder layout
 

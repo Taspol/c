@@ -24,29 +24,38 @@ struct musician {
 
 /* ===== ส่วนที่น้องเติม: ไม่ต้องเปลี่ยนชื่อฟังก์ชันหรือชนิดข้อมูล ===== */
 
-/* TODO 1: เปลี่ยนค่าเริ่มต้นเป็น Keyboard Songs ราคา 200
-           แล้วคำนวณส่วนลด 10% เก็บใน b.discount */
+/* 
+TODO 1: เปลี่ยนค่าเริ่มต้นเป็น Keyboard Songs ราคา 200
+        แล้วคำนวณส่วนลด 10% เก็บใน b.discount 
+*/
 struct book make_book(void) {
     struct book b = {"", 0.0f, 0.0f};
+    //--- เติมโค้ดตรงนี้ ---
+
     return b;
 }
 
-/* TODO 2: วน i ตั้งแต่ 0 ขณะ i < n
-   TODO 3: ถ้า band[i].age > 20 ให้พิมพ์ชื่อ,อายุ ตามรูปแบบ
-           printf("%s,%d\n", band[i].name, band[i].age); */
+/* 
+TODO 2: วน i ตั้งแต่ 0 ขณะ i < n
+TODO 3: ถ้า band[i].age > 20 ให้พิมพ์ชื่อ,อายุ ตามรูปแบบ
+        printf("%s,%d\n", band[i].name, band[i].age); 
+*/
 void show_older(struct musician band[], int n) {
-    (void)band; /* ลบสองบรรทัดนี้ได้เมื่อเติมคำตอบแล้ว */
-    (void)n;
+    //--- เติมโค้ดตรงนี้ ---
+    
 }
 
 /* TODO 4: เพิ่ม hero.sticker.x ด้วย step โดยไม่เปลี่ยน y */
 struct musician move_right(struct musician hero, int step) {
-    (void)step; /* ลบบรรทัดนี้ได้เมื่อเติมคำตอบแล้ว */
+    //--- เติมโค้ดตรงนี้ ---
+
     return hero;
 }
 
 /* TODO 5: เปลี่ยน hero.name เป็น Mint ด้วย strcpy */
 struct musician rename_to_mint(struct musician hero) {
+    //--- เติมโค้ดตรงนี้ ---
+
     return hero;
 }
 
