@@ -1,0 +1,10 @@
+joy 12
+boy 20
+jo 23
+pat 21
+ple 13
+tom 11
+tu 25
+tee 34
+bat 44
+phon 33

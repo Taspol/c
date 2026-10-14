@@ -14,6 +14,12 @@ build/
 # Compiled exercise programs (they have no file extension)
 struct/exercise/exercise[0-9]
 struct/exercise/exercise[0-9][0-9]
+struct/hw/prob[0-9]
+struct/hw/prob[0-9][0-9]
+function/exercise/*/problem
+function/exercise/*/solution
+function/inclass/prob[0-9]
+function/inclass/prob[0-9]_solution
 
 # Python
 __pycache__/
