@@ -25,9 +25,10 @@ services:
 
   web:
     <<: *app
-    # Only reachable from the server itself, for a host nginx (see README)
+    # For your own nginx (see README). WEB_BIND=127.0.0.1 allows only this
+    # server; set it to this server's LAN IP when nginx is on another machine.
     ports:
-      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-3000}:3000"
     volumes:
       - data:/app/data
     environment:

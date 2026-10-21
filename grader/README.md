@@ -105,8 +105,13 @@ to check that judging works.
 
 ### Using your own nginx instead of Caddy
 
-The web app is published on `127.0.0.1:3000` (change it with `WEB_PORT` in
-`.env`). Start everything except Caddy, which would also want ports 80/443:
+The web app is published on `127.0.0.1:3000`, reachable only from the server
+itself. Change the port with `WEB_PORT` in `.env`. If nginx runs on **another
+machine** in your network, set `WEB_BIND` to this server's LAN IP (e.g.
+`WEB_BIND=192.168.1.20`, see `hostname -I`) and use that IP in `proxy_pass`.
+Docker bypasses `ufw`, so don't use `0.0.0.0` on a server with a public IP.
+
+Start everything except Caddy, which would also want ports 80/443:
 
 ```bash
 docker compose up -d --build web worker
