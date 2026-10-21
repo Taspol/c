@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AddTestCaseForm, EditProblemForm, UploadTestCasesForm } from "@/components/admin/forms";
+import { AddTestCaseForm, EditProblemForm, EditTestCaseForm, UploadTestCasesForm } from "@/components/admin/forms";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { PageHead } from "@/components/PageHead";
 import { deleteAllTestCases, deleteProblem, deleteTestCase, rejudgeProblem, toggleSample } from "@/lib/actions/admin";
@@ -18,9 +18,9 @@ export default async function EditProblemPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; edit?: string; saved?: string }>;
 }) {
-  const [{ id }, { tab: tabParam }] = await Promise.all([params, searchParams]);
+  const [{ id }, { tab: tabParam, edit, saved }] = await Promise.all([params, searchParams]);
   const tab = TABS.some((t) => t.key === tabParam) ? tabParam : "details";
   const problem = await db.problem.findUnique({
     where: { id: Number(id) || 0 },
@@ -28,6 +28,8 @@ export default async function EditProblemPage({
   });
   if (!problem) notFound();
   const total = problem.testCases.reduce((s, t) => s + t.points, 0);
+  const editIndex = problem.testCases.findIndex((t) => t.id === Number(edit));
+  const savedIndex = problem.testCases.findIndex((t) => t.id === Number(saved));
   const counts: Record<string, number | null> = { details: null, tests: problem.testCases.length, settings: null };
 
   return (
@@ -60,6 +62,15 @@ export default async function EditProblemPage({
             {problem.testCases.length === 0 && (
               <div className="banner warn">No test cases yet. Submissions to this problem can&apos;t be judged until you add some.</div>
             )}
+            {savedIndex >= 0 && editIndex < 0 && (
+              <div className="banner ok">
+                Test {savedIndex + 1} saved. Old submissions keep their result until you{" "}
+                <Link href={`/admin/problems/${problem.id}?tab=settings`}>rejudge</Link> them.
+              </div>
+            )}
+            {editIndex >= 0 && (
+              <EditTestCaseForm key={problem.testCases[editIndex].id} testCase={problem.testCases[editIndex]} number={editIndex + 1} />
+            )}
             <section className="card flush">
               <div className="card-head">
                 <h2>Test cases</h2>
@@ -83,7 +94,7 @@ export default async function EditProblemPage({
                   <tbody>
                     {problem.testCases.length === 0 && <tr><td colSpan={7} className="empty">Nothing here yet.</td></tr>}
                     {problem.testCases.map((t, i) => (
-                      <tr key={t.id}>
+                      <tr key={t.id} className={i === editIndex ? "current" : ""}>
                         <td className="muted">{i + 1}</td>
                         <td className="nowrap">{t.name}</td>
                         <td><code>{preview(t.input)}</code></td>
@@ -97,10 +108,11 @@ export default async function EditProblemPage({
                             </button>
                           </form>
                         </td>
-                        <td>
+                        <td className="row-actions">
+                          <Link href={`/admin/problems/${problem.id}?tab=tests&edit=${t.id}#edit-test`}>Edit</Link>
                           <form action={deleteTestCase}>
                             <input type="hidden" name="id" value={t.id} />
-                            <button className="link danger-text" type="submit">Delete</button>
+                            <ConfirmButton className="link danger-text" message={`Delete test ${i + 1} (${t.name})?`}>Delete</ConfirmButton>
                           </form>
                         </td>
                       </tr>

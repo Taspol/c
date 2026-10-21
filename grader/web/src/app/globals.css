@@ -751,3 +751,10 @@ table.rp-tests th, table.rp-tests td { padding-top: 6px; padding-bottom: 6px; }
   .rp-cols { grid-template-columns: 1fr; }
   .rp-cols > div + div { border-left: 0; border-top: 1px solid var(--line); }
 }
+
+/* Admin test case table: Edit / Delete side by side, row being edited */
+.row-actions { white-space: nowrap; }
+.row-actions > * { display: inline-block; vertical-align: middle; }
+.row-actions > * + * { margin-left: 14px; }
+tr.current td { background: var(--accent-weak); }
+.edit-test { border-color: var(--accent); scroll-margin-top: 12px; }

@@ -1,9 +1,18 @@
 "use client";
 
-import type { Problem } from "@prisma/client";
+import type { Problem, TestCase } from "@prisma/client";
+import Link from "next/link";
 import { useActionState } from "react";
 import { problemSections } from "@/lib/problem";
-import { addTestCase, createProblem, resetPassword, updateProblem, uploadTestCases, type AdminFormState } from "@/lib/actions/admin";
+import {
+  addTestCase,
+  createProblem,
+  resetPassword,
+  updateProblem,
+  updateTestCase,
+  uploadTestCases,
+  type AdminFormState,
+} from "@/lib/actions/admin";
 import { SubmitButton } from "../SubmitButton";
 
 function Status({ state }: { state: AdminFormState }) {
@@ -116,6 +125,44 @@ export function AddTestCaseForm({ problemId }: { problemId: number }) {
         <SubmitButton pendingText="Adding…">Add test case</SubmitButton>
         <label className="check">
           <input type="checkbox" name="isSample" />
+          <span>Example (shown to students)</span>
+        </label>
+      </div>
+    </form>
+  );
+}
+
+export function EditTestCaseForm({ testCase, number }: { testCase: TestCase; number: number }) {
+  const [state, action] = useActionState(updateTestCase, undefined);
+  const back = `/admin/problems/${testCase.problemId}?tab=tests`;
+  return (
+    <form action={action} className="card edit-test" id="edit-test">
+      <h2>Edit test {number}</h2>
+      <input type="hidden" name="id" value={testCase.id} />
+      <div className="grid two">
+        <label>
+          <span>Input</span>
+          <textarea name="input" rows={8} defaultValue={testCase.input} spellCheck={false} />
+        </label>
+        <label>
+          <span>Expected output</span>
+          <textarea name="output" rows={8} defaultValue={testCase.output} spellCheck={false} />
+        </label>
+        <label>
+          <span>Name</span>
+          <input name="name" type="text" defaultValue={testCase.name} required />
+        </label>
+        <label>
+          <span>Points</span>
+          <input name="points" type="number" min={0} defaultValue={testCase.points} />
+        </label>
+      </div>
+      <Status state={state} />
+      <div className="actions">
+        <SubmitButton pendingText="Saving…">Save test case</SubmitButton>
+        <Link href={back} className="button secondary">Cancel</Link>
+        <label className="check">
+          <input type="checkbox" name="isSample" defaultChecked={testCase.isSample} />
           <span>Example (shown to students)</span>
         </label>
       </div>

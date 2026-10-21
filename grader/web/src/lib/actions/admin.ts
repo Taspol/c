@@ -85,6 +85,25 @@ export async function addTestCase(_: AdminFormState, form: FormData): Promise<Ad
   return { message: "Test case added" };
 }
 
+export async function updateTestCase(_: AdminFormState, form: FormData): Promise<AdminFormState> {
+  await requireAdmin();
+  const id = Number(form.get("id"));
+  const name = String(form.get("name") ?? "").trim();
+  if (!name) return { error: "Name is required" };
+  const tc = await db.testCase.update({
+    where: { id },
+    data: {
+      name,
+      input: String(form.get("input") ?? ""),
+      output: String(form.get("output") ?? ""),
+      isSample: form.get("isSample") === "on",
+      points: Math.max(0, Number(form.get("points") ?? 1) || 0),
+    },
+  });
+  revalidatePath(`/admin/problems/${tc.problemId}`);
+  redirect(`/admin/problems/${tc.problemId}?tab=tests&saved=${tc.id}`);
+}
+
 // Pairs uploaded files by name: 1.in + 1.out (or .ans), sample1.in + sample1.out, ...
 export async function uploadTestCases(_: AdminFormState, form: FormData): Promise<AdminFormState> {
   await requireAdmin();
