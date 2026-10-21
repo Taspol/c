@@ -26,8 +26,8 @@ Browser ──► Caddy (HTTPS) ──► web (Next.js) ──┐
 
 Each problem has a Markdown statement, a time limit, a memory limit and test
 cases (input + expected output + points). Programs read **stdin** and write
-**stdout**. Output is compared ignoring trailing spaces and trailing blank
-lines. Compiler: GCC 14, `-O2`, C as `gnu11`, C++ as `gnu++17`.
+**stdout**. Output is compared ignoring trailing spaces and blank lines
+(anywhere, so a leading `printf("\n...")` is fine). Compiler: GCC 14, `-O2`, C as `gnu11`, C++ as `gnu++17`.
 
 - Test cases marked **Example** are shown on the problem page, and students
   see their own output for them when they fail. Other tests are hidden:
