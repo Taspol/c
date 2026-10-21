@@ -25,6 +25,9 @@ services:
 
   web:
     <<: *app
+    # Only reachable from the server itself, for a host nginx (see README)
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
     volumes:
       - data:/app/data
     environment:

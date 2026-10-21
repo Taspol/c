@@ -103,6 +103,36 @@ docker compose logs -f worker    # first start pulls gcc:14
 Open your domain, log in as the admin, open **A + B** and submit a solution
 to check that judging works.
 
+### Using your own nginx instead of Caddy
+
+The web app is published on `127.0.0.1:3000` (change it with `WEB_PORT` in
+`.env`). Start everything except Caddy, which would also want ports 80/443:
+
+```bash
+docker compose up -d --build web worker
+```
+
+Always name `web worker` when starting; a plain `docker compose up -d` also
+starts Caddy. Then proxy to it from nginx:
+
+```nginx
+server {
+    server_name grader.example.com;
+    client_max_body_size 20m;              # test case uploads
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;       # Next.js checks it on form posts
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+Get HTTPS with `certbot --nginx -d grader.example.com`. Keep
+`COOKIE_SECURE=true` once HTTPS works (`false` only for plain HTTP).
+
 ### 5. Firewall (recommended)
 
 ```bash
