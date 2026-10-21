@@ -1,0 +1,61 @@
+# Production stack. Run scripts/setup.sh first to create .env.
+x-app: &app
+  build: ./web
+  image: grader-web:latest
+  restart: unless-stopped
+  environment: &app-env
+    DATABASE_URL: file:/app/data/grader.db
+    TZ: ${TZ:-Asia/Bangkok}
+
+services:
+  caddy:
+    image: caddy:2.10.0
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - web
+
+  web:
+    <<: *app
+    volumes:
+      - data:/app/data
+    environment:
+      <<: *app-env
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      REGISTRATION_CODE: ${REGISTRATION_CODE:-}
+      REGISTRATION_OPEN: ${REGISTRATION_OPEN:-true}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/login').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 10s
+      start_period: 30s
+
+  # Judges submissions, each in a fresh sandbox container started through
+  # the host's Docker. Run only one worker; raise WORKER_CONCURRENCY instead.
+  worker:
+    <<: *app
+    command: ["pnpm", "worker"]
+    volumes:
+      - data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      <<: *app-env
+      JUDGE_ENGINE: docker
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-1}
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  data:
+  caddy-data:
+  caddy-config:

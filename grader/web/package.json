@@ -1,0 +1,40 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --names web,judge --prefix-colors blue,magenta \"pnpm dev:web\" \"pnpm worker\"",
+    "dev:web": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "worker": "tsx --env-file-if-exists=.env src/worker/index.ts",
+    "seed": "tsx --env-file-if-exists=.env src/scripts/seed.ts",
+    "db:migrate": "prisma migrate deploy",
+    "postinstall": "prisma generate",
+    "backup": "tsx --env-file-if-exists=.env src/scripts/backup.ts"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@prisma/client": "^6.16.2",
+    "bcryptjs": "^3.0.2",
+    "next": "15.5.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-markdown": "^10.1.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "9.2.1",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.4",
+    "prisma": "^6.16.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@9.13.0"
+}

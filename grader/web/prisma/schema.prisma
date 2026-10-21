@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum Language {
+  C
+  CPP
+}
+
+enum SubmissionStatus {
+  PENDING
+  JUDGING
+  DONE
+}
+
+// AC accepted, WA wrong answer, TLE time limit, MLE memory limit,
+// RE runtime error, CE compile error, IE internal (judge) error
+enum Verdict {
+  AC
+  WA
+  TLE
+  MLE
+  RE
+  CE
+  IE
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+  username     String       @unique
+  passwordHash String
+  role         Role         @default(STUDENT)
+  createdAt    DateTime     @default(now())
+  sessions     Session[]
+  submissions  Submission[]
+}
+
+model Session {
+  // sha256 of the cookie token, so a leaked DB does not leak live sessions
+  id        String   @id
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+}
+
+model Problem {
+  id            Int          @id @default(autoincrement())
+  slug          String       @unique
+  title         String
+  statement     String       @default("")
+  // What the program reads and what it must print, shown as their own sections
+  inputFormat   String       @default("")
+  outputFormat  String       @default("")
+  timeLimitMs   Int          @default(1000)
+  memoryLimitKb Int          @default(262144)
+  published     Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  testCases     TestCase[]
+  submissions   Submission[]
+}
+
+model TestCase {
+  id        Int          @id @default(autoincrement())
+  problemId Int
+  problem   Problem      @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  name      String
+  input     String
+  output    String
+  // sample tests are shown on the problem page and their output is shown to students
+  isSample  Boolean      @default(false)
+  points    Int          @default(1)
+  results   TestResult[]
+
+  @@index([problemId])
+}
+
+model Submission {
+  id            Int              @id @default(autoincrement())
+  userId        Int
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId     Int
+  problem       Problem          @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  language      Language
+  code          String
+  status        SubmissionStatus @default(PENDING)
+  verdict       Verdict?
+  score         Int              @default(0)
+  maxScore      Int              @default(0)
+  compileOutput String?
+  timeMs        Int?
+  memoryKb      Int?
+  createdAt     DateTime         @default(now())
+  results       TestResult[]
+
+  @@index([status, id])
+  @@index([userId, problemId])
+}
+
+model TestResult {
+  id           Int        @id @default(autoincrement())
+  submissionId Int
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  testCaseId   Int
+  testCase     TestCase   @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  verdict      Verdict
+  timeMs       Int?
+  memoryKb     Int?
+  // kept short; only shown to students for sample tests
+  stdout       String?
+  stderr       String?
+
+  @@index([submissionId])
+}

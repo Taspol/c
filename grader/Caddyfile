@@ -1,0 +1,6 @@
+# DOMAIN is a hostname (grader.example.com) for automatic HTTPS,
+# or ":80" to serve plain HTTP on the server's IP while testing.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy web:3000
+}
