@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 
 export default async function ScoreboardPage() {
   const [problems, users, best, points] = await Promise.all([
-    db.problem.findMany({ where: { published: true }, orderBy: { id: "asc" }, select: { id: true, slug: true, title: true } }),
+    db.problem.findMany({ where: { published: true }, orderBy: [{ position: "asc" }, { id: "asc" }], select: { id: true, slug: true, title: true } }),
     db.user.findMany({ where: { role: "STUDENT" }, orderBy: { username: "asc" }, select: { id: true, username: true } }),
     db.submission.groupBy({ by: ["userId", "problemId"], where: { status: "DONE" }, _max: { score: true } }),
     db.testCase.groupBy({ by: ["problemId"], _sum: { points: true } }),

@@ -22,7 +22,8 @@ export async function createProblem(_: AdminFormState, form: FormData): Promise<
   if (!title) return { error: "Title is required" };
   if (await db.problem.findUnique({ where: { slug: slug.data } })) return { error: "That slug is taken" };
 
-  const problem = await db.problem.create({ data: { slug: slug.data, title } });
+  const last = await db.problem.aggregate({ _max: { position: true } });
+  const problem = await db.problem.create({ data: { slug: slug.data, title, position: (last._max.position ?? 0) + 1 } });
   redirect(`/admin/problems/${problem.id}`);
 }
 
@@ -65,6 +66,23 @@ export async function deleteProblem(form: FormData) {
   await requireAdmin();
   await db.problem.delete({ where: { id: Number(form.get("id")) } });
   redirect("/admin");
+}
+
+// Swaps a problem with its neighbour in the list. Positions are renumbered
+// 1..n first, so ties from older data can't make a move do nothing.
+export async function moveProblem(form: FormData) {
+  await requireAdmin();
+  const id = Number(form.get("id"));
+  const step = form.get("direction") === "up" ? -1 : 1;
+  await db.$transaction(async (tx) => {
+    const ids = (await tx.problem.findMany({ orderBy: [{ position: "asc" }, { id: "asc" }], select: { id: true } })).map((p) => p.id);
+    const from = ids.indexOf(id);
+    const to = from + step;
+    if (from < 0 || to < 0 || to >= ids.length) return;
+    [ids[from], ids[to]] = [ids[to], ids[from]];
+    for (const [i, pid] of ids.entries()) await tx.problem.update({ where: { id: pid }, data: { position: i + 1 } });
+  });
+  revalidatePath("/", "layout");
 }
 
 export async function addTestCase(_: AdminFormState, form: FormData): Promise<AdminFormState> {

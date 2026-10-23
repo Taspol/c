@@ -8,7 +8,7 @@ export default async function ProblemsPage() {
   const isAdmin = user.role === "ADMIN";
 
   const [problems, points, best] = await Promise.all([
-    db.problem.findMany({ where: isAdmin ? {} : { published: true }, orderBy: { id: "asc" } }),
+    db.problem.findMany({ where: isAdmin ? {} : { published: true }, orderBy: [{ position: "asc" }, { id: "asc" }] }),
     db.testCase.groupBy({ by: ["problemId"], _sum: { points: true } }),
     db.submission.groupBy({ by: ["problemId"], where: { userId: user.id, status: "DONE" }, _max: { score: true } }),
   ]);
@@ -45,13 +45,13 @@ export default async function ProblemsPage() {
                 {problems.length === 0 && (
                   <tr><td colSpan={5} className="empty">No problems yet.</td></tr>
                 )}
-                {problems.map((p) => {
+                {problems.map((p, i) => {
                   const max = maxScore.get(p.id) ?? 0;
                   const mine = bestScore.get(p.id);
                   const done = mine !== undefined && max > 0 && mine >= max;
                   return (
                     <tr key={p.id}>
-                      <td className="muted">{p.id}</td>
+                      <td className="muted">{i + 1}</td>
                       <td>
                         <Link href={`/problems/${p.slug}`}>{p.title}</Link>
                         {!p.published && <span className="tag neutral" style={{ marginLeft: 10 }}>Draft</span>}

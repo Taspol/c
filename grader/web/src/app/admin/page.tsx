@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { CreateProblemForm } from "@/components/admin/forms";
 import { PageHead } from "@/components/PageHead";
+import { moveProblem } from "@/lib/actions/admin";
 import { db } from "@/lib/db";
 
 export default async function AdminPage() {
   const [problems, queue, users, submissions] = await Promise.all([
     db.problem.findMany({
-      orderBy: { id: "asc" },
+      orderBy: [{ position: "asc" }, { id: "asc" }],
       include: { _count: { select: { testCases: true, submissions: true } } },
     }),
     db.submission.count({ where: { status: { in: ["PENDING", "JUDGING"] } } }),
@@ -43,19 +44,36 @@ export default async function AdminPage() {
                   <th>Status</th>
                   <th className="num">Tests</th>
                   <th className="num">Submissions</th>
+                  <th>Order</th>
                 </tr>
               </thead>
               <tbody>
-                {problems.length === 0 && <tr><td colSpan={5} className="empty">No problems yet. Create one below.</td></tr>}
-                {problems.map((p) => (
+                {problems.length === 0 && <tr><td colSpan={6} className="empty">No problems yet. Create one below.</td></tr>}
+                {problems.map((p, i) => (
                   <tr key={p.id}>
-                    <td className="muted">{p.id}</td>
+                    <td className="muted">{i + 1}</td>
                     <td>
                       <Link href={`/admin/problems/${p.id}`}>{p.title}</Link> <span className="muted">/{p.slug}</span>
                     </td>
                     <td>{p.published ? <span className="tag good">Published</span> : <span className="tag neutral">Draft</span>}</td>
                     <td className="num">{p._count.testCases === 0 ? <span className="tag warning">0</span> : p._count.testCases}</td>
                     <td className="num">{p._count.submissions}</td>
+                    <td className="order-actions">
+                      {(["up", "down"] as const).map((dir) => (
+                        <form key={dir} action={moveProblem}>
+                          <input type="hidden" name="id" value={p.id} />
+                          <input type="hidden" name="direction" value={dir} />
+                          <button
+                            className="secondary"
+                            disabled={dir === "up" ? i === 0 : i === problems.length - 1}
+                            title={dir === "up" ? "Move up" : "Move down"}
+                            aria-label={`Move ${p.title} ${dir}`}
+                          >
+                            {dir === "up" ? "↑" : "↓"}
+                          </button>
+                        </form>
+                      ))}
+                    </td>
                   </tr>
                 ))}
               </tbody>

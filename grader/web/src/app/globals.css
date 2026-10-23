@@ -764,3 +764,9 @@ tr.current td { background: var(--accent-weak); }
 .ws-sync.saved::before { content: "✓ "; color: var(--ok); }
 .ws-sync.error { color: var(--err); }
 @media (max-width: 640px) { .ws-sync.saved, .ws-sync.saving { display: none; } }
+
+/* Manage page: move a problem up / down */
+.order-actions { white-space: nowrap; }
+.order-actions form { display: inline-block; }
+.order-actions form + form { margin-left: 4px; }
+.order-actions button { height: 26px; width: 30px; padding: 0; }

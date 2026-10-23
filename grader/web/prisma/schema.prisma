@@ -65,6 +65,8 @@ model Problem {
   timeLimitMs   Int          @default(1000)
   memoryLimitKb Int          @default(262144)
   published     Boolean      @default(false)
+  // Order in problem lists, set by the admin (lowest first)
+  position      Int          @default(0)
   createdAt     DateTime     @default(now())
   testCases     TestCase[]
   submissions   Submission[]
