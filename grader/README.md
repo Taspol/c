@@ -20,7 +20,10 @@ Browser ──► Caddy (HTTPS) ──► web (Next.js) ──┐
   container with no network, no Linux capabilities, a read-only filesystem
   (except a 64 MB scratch dir), an unprivileged user, 1 CPU, the problem's
   memory limit and at most 64 processes. The container is deleted right after.
-- **Database:** one SQLite file. Back it up with `pnpm backup`.
+- **Database:** one SQLite file. Back it up with `pnpm backup`. It holds
+  everything, including each student's editor drafts: the editor autosaves to
+  the browser at once and to the server about 1.5 s after typing stops, so
+  unsubmitted code follows a student to any computer.
 
 ## Problems and test cases
 
@@ -149,7 +152,7 @@ sudo ufw allow OpenSSH && sudo ufw allow 80 && sudo ufw allow 443 && sudo ufw en
 | Task | Command (in `grader/`) |
 |---|---|
 | Logs | `docker compose logs -f web worker` |
-| Update after `git pull` | `docker compose up -d --build` (migrations run on start) |
+| Update after `git pull` | `docker compose stop worker` then `docker compose up -d --build web worker` (migrations run on start and need the worker stopped, or the database is locked) |
 | Back up the database | `docker compose exec web pnpm backup /app/data/backups/grader.db` then `docker compose cp web:/app/data/backups ./backups` |
 | Restore a backup | `docker compose stop web worker`, `docker compose cp ./backups/grader.db web:/app/data/grader.db`, `docker compose start web worker` |
 | Close registration | set `REGISTRATION_OPEN=false` in `.env`, then `docker compose up -d` |

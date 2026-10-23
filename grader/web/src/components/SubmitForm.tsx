@@ -34,42 +34,124 @@ int main() {
 `,
 };
 
-// Drafts live in this browser only, so a refresh doesn't lose work
+// Code with the time it was saved (ms), so the newest copy wins
+type Saved = { code: string; savedAt: number };
+export type SavedCode = Partial<Record<Lang, Saved>>;
+
+const SYNC_DELAY_MS = 1500;
+const RETRY_MS = 5000;
+
+// Drafts are kept in this browser right away and on the server shortly
+// after, so a refresh or another computer doesn't lose work
 const draftKey = (problemId: number, lang: Lang) => `draft:${problemId}:${lang}`;
-function loadDraft(problemId: number, lang: Lang) {
+function loadLocal(problemId: number, lang: Lang): Saved | null {
   try {
-    return localStorage.getItem(draftKey(problemId, lang));
+    const raw = localStorage.getItem(draftKey(problemId, lang));
+    if (raw === null) return null;
+    try {
+      const v = JSON.parse(raw);
+      if (typeof v?.code === "string" && typeof v.savedAt === "number") return v;
+    } catch {}
+    return { code: raw, savedAt: 0 }; // plain-text drafts from before server sync
   } catch {
     return null;
   }
 }
-function saveDraft(problemId: number, lang: Lang, code: string) {
+function saveLocal(problemId: number, lang: Lang, code: string) {
   try {
-    localStorage.setItem(draftKey(problemId, lang), code);
+    localStorage.setItem(draftKey(problemId, lang), JSON.stringify({ code, savedAt: Date.now() }));
   } catch {}
 }
+const newest = (...items: (Saved | null | undefined)[]) =>
+  items.reduce<Saved | null>((best, x) => (x && (!best || x.savedAt > best.savedAt) ? x : best), null);
+
+type SyncState = "idle" | "saving" | "saved" | "error";
+const SYNC_LABEL: Record<SyncState, string> = {
+  idle: "",
+  saving: "Saving…",
+  saved: "Saved",
+  error: "Not saved to server, retrying…",
+};
 
 // The right side of the problem workspace: editor on top, results below
 export function SubmitForm({
   problemId,
   defaultLanguage,
   initialHistory,
+  savedCode,
 }: {
   problemId: number;
   defaultLanguage: Lang;
   initialHistory: HistoryItem[];
+  // The server's draft (or last submission) per language
+  savedCode: SavedCode;
 }) {
   const [state, action] = useActionState(submitCode, undefined);
   const [history, setHistory] = useState(initialHistory);
   const [shownId, setShownId] = useState<number | null>(initialHistory[0]?.id ?? null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const [language, setLanguage] = useState<Lang>(defaultLanguage);
-  const [code, setCode] = useState(TEMPLATES[defaultLanguage]);
+  const [code, setCode] = useState(savedCode[defaultLanguage]?.code ?? TEMPLATES[defaultLanguage]);
   const [dark, setDark] = useState(false);
+  const [sync, setSync] = useState<SyncState>("idle");
+  const pending = useRef<{ language: Lang; code: string } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
-    setCode(loadDraft(problemId, language) ?? TEMPLATES[language]);
+    setCode(newest(loadLocal(problemId, language), savedCode[language])?.code ?? TEMPLATES[language]);
+    // savedCode is only the starting point; later edits are newer
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [problemId, language]);
+
+  // Send the latest unsaved draft to the server now
+  const flush = useCallback(
+    (keepalive = false) => {
+      clearTimeout(timer.current);
+      const draft = pending.current;
+      if (!draft) return;
+      pending.current = null;
+      setSync("saving");
+      const body = JSON.stringify({ problemId, ...draft });
+      fetch("/api/drafts", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body,
+        // keepalive lets the save finish while the page closes (browsers cap it at 64 KB)
+        keepalive: keepalive && body.length < 60_000,
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`Error ${res.status}`);
+          if (!pending.current) setSync("saved");
+        })
+        .catch(() => {
+          setSync("error");
+          if (!pending.current) pending.current = draft;
+          clearTimeout(timer.current);
+          timer.current = setTimeout(() => flush(), RETRY_MS);
+        });
+    },
+    [problemId],
+  );
+
+  const schedule = (lang: Lang, value: string) => {
+    pending.current = { language: lang, code: value };
+    setSync("saving");
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => flush(), SYNC_DELAY_MS);
+  };
+
+  // Don't lose the last keystrokes when the tab is hidden or closed
+  useEffect(() => {
+    const onHide = () => flush(true);
+    const onVisibility = () => document.visibilityState === "hidden" && onHide();
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", onHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", onHide);
+      onHide();
+    };
+  }, [flush]);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -103,7 +185,8 @@ export function SubmitForm({
 
   const update = (value: string) => {
     setCode(value);
-    saveDraft(problemId, language, value);
+    saveLocal(problemId, language, value);
+    schedule(language, value);
   };
 
   const loadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,14 +196,15 @@ export function SubmitForm({
     const text = await file.text();
     const lang: Lang = /\.(cpp|cc|cxx)$/i.test(file.name) ? "CPP" : /\.c$/i.test(file.name) ? "C" : language;
     // Save as that language's draft; the language effect then loads it
-    saveDraft(problemId, lang, text);
+    saveLocal(problemId, lang, text);
+    schedule(lang, text);
     setCode(text);
     setLanguage(lang);
   };
 
   return (
     <div className="ws-right">
-      <form action={action} className="ws-editor-pane card">
+      <form action={action} onSubmit={() => flush()} className="ws-editor-pane card">
         <input type="hidden" name="problemId" value={problemId} />
         <input type="hidden" name="code" value={code} />
         <input type="hidden" name="language" value={language} />
@@ -134,6 +218,7 @@ export function SubmitForm({
               </label>
             ))}
           </div>
+          <span className={`ws-sync ${sync}`} role="status">{SYNC_LABEL[sync]}</span>
           <span className="spacer" />
           <label className="button secondary">
             Load file…

@@ -1,9 +1,8 @@
 "use server";
 
 import { requireUser } from "../auth";
+import { MAX_CODE_BYTES } from "../code-limits";
 import { db } from "../db";
-
-const MAX_CODE_BYTES = 64 * 1024;
 
 export type SubmitState = { error?: string; submissionId?: number } | undefined;
 

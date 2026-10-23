@@ -758,3 +758,9 @@ table.rp-tests th, table.rp-tests td { padding-top: 6px; padding-bottom: 6px; }
 .row-actions > * + * { margin-left: 14px; }
 tr.current td { background: var(--accent-weak); }
 .edit-test { border-color: var(--accent); scroll-margin-top: 12px; }
+
+/* Editor autosave status next to the language chips */
+.ws-sync { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.ws-sync.saved::before { content: "✓ "; color: var(--ok); }
+.ws-sync.error { color: var(--err); }
+@media (max-width: 640px) { .ws-sync.saved, .ws-sync.saving { display: none; } }

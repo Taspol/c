@@ -43,6 +43,7 @@ model User {
   createdAt    DateTime     @default(now())
   sessions     Session[]
   submissions  Submission[]
+  drafts       Draft[]
 }
 
 model Session {
@@ -67,6 +68,7 @@ model Problem {
   createdAt     DateTime     @default(now())
   testCases     TestCase[]
   submissions   Submission[]
+  drafts        Draft[]
 }
 
 model TestCase {
@@ -120,4 +122,17 @@ model TestResult {
   stderr       String?
 
   @@index([submissionId])
+}
+
+// The editor's latest unsubmitted code, so it follows the student to any browser
+model Draft {
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId Int
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  language  Language
+  code      String
+  updatedAt DateTime @updatedAt
+
+  @@id([userId, problemId, language])
 }

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Markdown from "react-markdown";
 import { CopyButton } from "@/components/CopyButton";
 import { SectionIcon } from "@/components/SectionIcon";
-import { SubmitForm } from "@/components/SubmitForm";
+import { SubmitForm, type SavedCode } from "@/components/SubmitForm";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { problemSections } from "@/lib/problem";
@@ -18,11 +18,25 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
   });
   if (!problem || (!problem.published && user.role !== "ADMIN")) notFound();
 
-  const [recent, lastSubmission, totals] = await Promise.all([
+  const [recent, lastSubmission, totals, drafts] = await Promise.all([
     db.submission.findMany({ where: { userId: user.id, problemId: problem.id }, orderBy: { id: "desc" }, take: 20 }),
     db.submission.findFirst({ where: { userId: user.id }, orderBy: { id: "desc" }, select: { language: true } }),
     db.testCase.aggregate({ where: { problemId: problem.id }, _count: true, _sum: { points: true } }),
+    db.draft.findMany({ where: { userId: user.id, problemId: problem.id } }),
   ]);
+  // Open in the language the student last worked in on this problem
+  const latestDraft = drafts.toSorted((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0];
+  // Per language, the newer of the saved draft and the last submission
+  const savedCode: SavedCode = {};
+  for (const lang of ["C", "CPP"] as const) {
+    const draft = drafts.find((d) => d.language === lang);
+    const sub = recent.find((s) => s.language === lang);
+    const options = [
+      draft && { code: draft.code, savedAt: draft.updatedAt.getTime() },
+      sub && { code: sub.code, savedAt: sub.createdAt.getTime() },
+    ].filter((x) => x !== undefined);
+    if (options.length) savedCode[lang] = options.sort((a, b) => b.savedAt - a.savedAt)[0];
+  }
   const text = problemSections(problem);
 
   return (
@@ -126,8 +140,9 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
       <SubmitForm
         problemId={problem.id}
-        defaultLanguage={lastSubmission?.language ?? "C"}
+        defaultLanguage={latestDraft?.language ?? lastSubmission?.language ?? "C"}
         initialHistory={recent.map(toHistoryItem)}
+        savedCode={savedCode}
       />
     </div>
   );
