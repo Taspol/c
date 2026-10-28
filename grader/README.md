@@ -21,9 +21,14 @@ Browser ──► Caddy (HTTPS) ──► web (Next.js) ──┐
   (except a 64 MB scratch dir), an unprivileged user, 1 CPU, the problem's
   memory limit and at most 64 processes. The container is deleted right after.
 - **Database:** one SQLite file. Back it up with `pnpm backup`. It holds
-  everything, including each student's editor drafts: the editor autosaves to
-  the browser at once and to the server about 1.5 s after typing stops, so
-  unsubmitted code follows a student to any computer.
+  everything, including each student's editor drafts.
+- **Live editing:** a student logged in on several computers (or tabs) sees
+  one shared editor per problem, updated as they type, with the other
+  computers' cursors and selections and an "Also open on" strip (device,
+  language, line, editing/away). Submissions show up on all of them. It uses
+  Yjs over Server-Sent Events (`/api/live/…`); the shared text lives in the
+  web process and is saved as a draft about 1 s after each change and on
+  shutdown. Run a single `web` container.
 
 ## Problems and test cases
 
@@ -134,6 +139,18 @@ server {
         proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Live editing stream: no buffering, and keep it open
+    location /api/live/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_read_timeout 1h;
     }
 }
 ```

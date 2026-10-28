@@ -3,6 +3,7 @@
 import { requireUser } from "../auth";
 import { MAX_CODE_BYTES } from "../code-limits";
 import { db } from "../db";
+import { announceSubmission } from "../live/rooms";
 
 export type SubmitState = { error?: string; submissionId?: number } | undefined;
 
@@ -25,5 +26,6 @@ export async function submitCode(_: SubmitState, form: FormData): Promise<Submit
   if (waiting > 0) return { error: "Please wait for your previous submission to finish" };
 
   const sub = await db.submission.create({ data: { userId: user.id, problemId, language, code } });
+  await announceSubmission(user.id, problemId, sub.id, language);
   return { submissionId: sub.id };
 }

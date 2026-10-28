@@ -21,4 +21,6 @@ RUN pnpm build
 ENV NODE_ENV=production
 EXPOSE 3000
 # Migrations and seeding are idempotent, so they run on every start
-CMD ["sh", "-c", "pnpm exec prisma migrate deploy && pnpm seed && pnpm start"]
+# exec: Next.js replaces the shell, so it gets the stop signal and can save
+# live drafts before the container stops
+CMD ["sh", "-c", "pnpm exec prisma migrate deploy && pnpm seed && exec ./node_modules/.bin/next start"]
