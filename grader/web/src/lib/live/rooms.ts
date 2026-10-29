@@ -68,8 +68,11 @@ async function createRoom(userId: number, problemId: number): Promise<Room> {
     const sub = subs.find((s) => s.language === lang);
     const text =
       draft && (!sub || draft.updatedAt >= sub.createdAt) ? draft.code : sub ? sub.code : TEMPLATES[lang];
-    doc.getText(lang).insert(0, text.replace(/\r\n?/g, "\n"));
-    saved[lang] = draft?.code ?? "";
+    const normalized = text.replace(/\r\n?/g, "\n");
+    doc.getText(lang).insert(0, normalized);
+    // Only languages the student edits get a draft, so the newest draft
+    // tells which language they were using
+    saved[lang] = normalized;
   }
   const room: Room = {
     key: roomKey(userId, problemId),
